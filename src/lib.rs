@@ -1,6 +1,5 @@
 #![no_std]
 
-use anyhow;
 use byteorder::ByteOrder;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -21,14 +20,21 @@ pub enum Error {
     CrcInvalid,
 }
 
-pub fn decode<T>(source: &[u8]) -> anyhow::Result<T, Error>
+pub fn decode<T>(source: &[u8]) -> Result<T, Error>
 where
     T: DeserializeOwned,
 {
     let mut dest: [u8; 1024] = [0; 1024];
-    let len = cobs::decode(source, &mut dest).map_err(|e| Error::CobsDecode)?;
-    let (t, _) =
-        serde_json_core::from_slice::<T>(&dest[0..len - 4]).map_err(|e| Error::JsonDecode)?;
+
+    let len = match cobs::decode(source, &mut dest) {
+        Ok(x) => x,
+        Err(_e) => return Err(Error::CobsDecode),
+    };
+
+    let (t, _) = match serde_json_core::from_slice::<T>(&dest[0..len - 4]) {
+        Ok(x) => x,
+        Err(_e) => return Err(Error::JsonDecode),
+    };
 
     let calc_hash = crc32fast::hash(&dest[0..len - 4]);
     let data_hash = u32::from_le_bytes(dest[len - 4..len].try_into().unwrap());
@@ -42,7 +48,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #![no_std]
 
     use super::*;
     use serde::{Deserialize, Serialize};
