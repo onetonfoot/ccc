@@ -1,5 +1,4 @@
 #![no_std]
-#![no_main]
 
 use anyhow;
 use byteorder::ByteOrder;
@@ -43,9 +42,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use serde::{Deserialize, Serialize};
+    #![no_std]
 
     use super::*;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
     struct TestStruct {
